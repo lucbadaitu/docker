@@ -1,443 +1,375 @@
-#!/bin/bash
+#!/usr/bin/env bash
+PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
+export PATH
 
+# Current folder
+cur_dir=$(pwd)
+# Color
 red='\033[0;31m'
 green='\033[0;32m'
-yellow='\033[0;33m'
+#yellow='\033[0;33m'
 plain='\033[0m'
+operation=(Install Update UpdateConfig logs restart delete)
+# Make sure only root can run our script
+[[ $EUID -ne 0 ]] && echo -e "[${red}Error${plain}] Chưa vào root kìa !, vui lòng xin phép ROOT trước!" && exit 1
 
-version="v1.0.0"
+#Check system
+check_sys() {
+  local checkType=$1
+  local value=$2
+  local release=''
+  local systemPackage=''
 
-# check root
-[[ $EUID -ne 0 ]] && echo -e "${red}错误: ${plain} 必须使用root用户运行此脚本！\n" && exit 1
-
-# check os
-if [[ -f /etc/redhat-release ]]; then
+  if [[ -f /etc/redhat-release ]]; then
     release="centos"
-elif cat /etc/issue | grep -Eqi "debian"; then
+    systemPackage="yum"
+  elif grep -Eqi "debian|raspbian" /etc/issue; then
     release="debian"
-elif cat /etc/issue | grep -Eqi "ubuntu"; then
+    systemPackage="apt"
+  elif grep -Eqi "ubuntu" /etc/issue; then
     release="ubuntu"
-elif cat /etc/issue | grep -Eqi "centos|red hat|redhat"; then
+    systemPackage="apt"
+  elif grep -Eqi "centos|red hat|redhat" /etc/issue; then
     release="centos"
-elif cat /proc/version | grep -Eqi "debian"; then
+    systemPackage="yum"
+  elif grep -Eqi "debian|raspbian" /proc/version; then
     release="debian"
-elif cat /proc/version | grep -Eqi "ubuntu"; then
+    systemPackage="apt"
+  elif grep -Eqi "ubuntu" /proc/version; then
     release="ubuntu"
-elif cat /proc/version | grep -Eqi "centos|red hat|redhat"; then
+    systemPackage="apt"
+  elif grep -Eqi "centos|red hat|redhat" /proc/version; then
     release="centos"
-else
-    echo -e "${red}未检测到系统版本，请联系脚本作者！${plain}\n" && exit 1
-fi
+    systemPackage="yum"
+  fi
 
-os_version=""
-
-# os version
-if [[ -f /etc/os-release ]]; then
-    os_version=$(awk -F'[= ."]' '/VERSION_ID/{print $3}' /etc/os-release)
-fi
-if [[ -z "$os_version" && -f /etc/lsb-release ]]; then
-    os_version=$(awk -F'[= ."]+' '/DISTRIB_RELEASE/{print $2}' /etc/lsb-release)
-fi
-
-if [[ x"${release}" == x"centos" ]]; then
-    if [[ ${os_version} -le 6 ]]; then
-        echo -e "${red}请使用 CentOS 7 或更高版本的系统！${plain}\n" && exit 1
-    fi
-elif [[ x"${release}" == x"ubuntu" ]]; then
-    if [[ ${os_version} -lt 16 ]]; then
-        echo -e "${red}请使用 Ubuntu 16 或更高版本的系统！${plain}\n" && exit 1
-    fi
-elif [[ x"${release}" == x"debian" ]]; then
-    if [[ ${os_version} -lt 8 ]]; then
-        echo -e "${red}请使用 Debian 8 或更高版本的系统！${plain}\n" && exit 1
-    fi
-fi
-
-confirm() {
-    if [[ $# > 1 ]]; then
-        echo && read -p "$1 [默认$2]: " temp
-        if [[ x"${temp}" == x"" ]]; then
-            temp=$2
-        fi
+  if [[ "${checkType}" == "sysRelease" ]]; then
+    if [ "${value}" == "${release}" ]; then
+      return 0
     else
-        read -p "$1 [y/n]: " temp
+      return 1
     fi
-    if [[ x"${temp}" == x"y" || x"${temp}" == x"Y" ]]; then
-        return 0
+  elif [[ "${checkType}" == "packageManager" ]]; then
+    if [ "${value}" == "${systemPackage}" ]; then
+      return 0
     else
-        return 1
+      return 1
     fi
+  fi
 }
 
-confirm_restart() {
-    confirm "是否重启soga" "y"
-    if [[ $? == 0 ]]; then
-        restart
+# Get version
+getversion() {
+  if [[ -s /etc/redhat-release ]]; then
+    grep -oE "[0-9.]+" /etc/redhat-release
+  else
+    grep -oE "[0-9.]+" /etc/issue
+  fi
+}
+
+# CentOS version
+centosversion() {
+  if check_sys sysRelease centos; then
+    local code=$1
+    local version="$(getversion)"
+    local main_ver=${version%%.*}
+    if [ "$main_ver" == "$code" ]; then
+      return 0
     else
-        show_menu
+      return 1
     fi
+  else
+    return 1
+  fi
 }
 
-before_show_menu() {
-    echo && echo -n -e "${yellow}按回车返回主菜单: ${plain}" && read temp
-    show_menu
+get_char() {
+  SAVEDSTTY=$(stty -g)
+  stty -echo
+  stty cbreak
+  dd if=/dev/tty bs=1 count=1 2>/dev/null
+  stty -raw
+  stty echo
+  stty $SAVEDSTTY
+}
+error_detect_depends() {
+  local command=$1
+  local depend=$(echo "${command}" | awk '{print $4}')
+  echo -e "[${green}Info${plain}] Bắt đầu cài đặt các gói ${depend}"
+  ${command} >/dev/null 2>&1
+  if [ $? -ne 0 ]; then
+    echo -e "[${red}Error${plain}] Cài đặt gói không thành công ${red}${depend}${plain}"
+    exit 1
+  fi
 }
 
-install() {
-    bash <(curl -Ls https://raw.githubusercontent.com/vaxilu/soga/master/install.sh)
-    if [[ $? == 0 ]]; then
-        if [[ $# == 0 ]]; then
-            start
-        else
-            start 0
-        fi
-    fi
+# Pre-installation settings
+pre_install_docker_compose() {
+  echo -e "[1] vt4g.com"
+  echo -e "[2] 4gviettel.shop"
+  read -p "Web đang sử dụng:" api_host
+  if [ "$api_host" == "1" ]; then
+    api_host="https://vt4g.com"
+  elif [ "$api_host" == "2" ]; then
+    api_host="https://4gviettel.shop"
+  else 
+    api_host="https://vt4g.com"
+  fi
+
+  echo "--------------------------------"
+  echo "Bạn đã chọn ${api_host}"
+  echo "--------------------------------"
+
+  read -p " ID nút (Node_ID):" node_id
+  [ -z "${node_id}" ] && node_id=0
+  echo "-------------------------------"
+  echo -e "Node_ID: ${node_id}"
+  echo "-------------------------------"
+
+  #giới hạn thiết bị
+read -p "Giới hạn thiết bị :" DeviceLimit
+  [ -z "${DeviceLimit}" ] && DeviceLimit="0"
+  echo "-------------------------------"
+  echo "Thiết bị tối đa là: ${DeviceLimit}"
+  echo "-------------------------------"
+}
+ 
+
+
+# Config docker
+config_docker() {
+  cd ${cur_dir} || exit
+  echo "Bắt đầu cài đặt các gói"
+  install_dependencies
+  echo "Tải tệp cấu hình DOCKER"
+  cat >docker-compose.yml <<EOF
+version: '3'
+services: 
+  xrayr: 
+    image: aikocute/xrayr:v1.3.12
+    volumes:
+      - ./config.yml:/etc/XrayR/config.yml # thư mục cấu hình bản đồ
+      - ./dns.json:/etc/XrayR/dns.json 
+    restart: always
+    network_mode: host
+EOF
+  cat >dns.json <<EOF
+{
+    "servers": [
+        "1.1.1.1",
+        "8.8.8.8",
+        "localhost"
+    ],
+    "tag": "dns_inbound"
+}
+EOF
+  cat >config.yml <<EOF
+Log:
+  Level: none # Log level: none, error, warning, info, debug 
+  AccessPath: # /etc/XrayR/access.Log
+  ErrorPath: # /etc/XrayR/error.log
+DnsConfigPath: # /etc/XrayR/dns.json Path to dns config, check https://xtls.github.io/config/base/dns/ for help
+RouteConfigPath: # /etc/XrayR/route.json # Path to route config, check https://xtls.github.io/config/base/route/ for help
+OutboundConfigPath: # /etc/XrayR/custom_outbound.json # Path to custom outbound config, check https://xtls.github.io/config/base/outbound/ for help
+ConnetionConfig:
+  Handshake: 4 # Handshake time limit, Second
+  ConnIdle: 10 # Connection idle time limit, Second
+  UplinkOnly: 2 # Time limit when the connection downstream is closed, Second
+  DownlinkOnly: 4 # Time limit when the connection is closed after the uplink is closed, Second
+  BufferSize: 64 # The internal cache size of each connection, kB 
+Nodes:
+  -
+    PanelType: "V2board" # Panel type: SSpanel, V2board, PMpanel, Proxypanel
+    ApiConfig:
+      ApiHost: "https://aikocute.com"
+      ApiKey: "chongthamhuyhoang123"
+      NodeID: 41
+      NodeType: V2ray # Node type: V2ray, Trojan, Shadowsocks, Shadowsocks-Plugin
+      Timeout: 30 # Timeout for the api request
+      EnableVless: false # Enable Vless for V2ray Type
+      EnableXTLS: false # Enable XTLS for V2ray and Trojan
+      SpeedLimit: 0 # Mbps, Local settings will replace remote settings, 0 means disable
+      DeviceLimit: 0 # Local settings will replace remote settings, 0 means disable
+      RuleListPath: # /etc/XrayR/rulelist Path to local rulelist file
+    ControllerConfig:
+      ListenIP: 0.0.0.0 # IP address you want to listen
+      SendIP: 0.0.0.0 # IP address you want to send pacakage
+      UpdatePeriodic: 60 # Time to update the nodeinfo, how many sec.
+      EnableDNS: false # Use custom DNS config, Please ensure that you set the dns.json well
+      DNSType: AsIs # AsIs, UseIP, UseIPv4, UseIPv6, DNS strategy
+      DisableUploadTraffic: false # Disable Upload Traffic to the panel
+      DisableGetRule: false # Disable Get Rule from the panel
+      DisableIVCheck: false # Disable the anti-reply protection for Shadowsocks
+      DisableSniffing: true # Disable domain sniffing 
+      EnableProxyProtocol: false # Only works for WebSocket and TCP
+      EnableFallback: false # Only support for Trojan and Vless
+      FallBackConfigs:  # Support multiple fallbacks
+        -
+          SNI: # TLS SNI(Server Name Indication), Empty for any
+          Path: # HTTP PATH, Empty for any
+          Dest: 80 # Required, Destination of fallback, check https://xtls.github.io/config/fallback/ for details.
+          ProxyProtocolVer: 0 # Send PROXY protocol version, 0 for dsable
+      CertConfig:
+        CertMode: dns # Option about how to get certificate: none, file, http, dns. Choose "none" will forcedly disable the tls config.
+        CertDomain: "node1.test.com" # Domain to cert
+        CertFile: /etc/XrayR/cert/node1.test.com.cert # Provided if the CertMode is file
+        KeyFile: /etc/XrayR/cert/node1.test.com.key
+        Provider: alidns # DNS cert provider, Get the full support list here: https://go-acme.github.io/lego/dns/
+        Email: test@me.com
+        DNSEnv: # DNS ENV option used by DNS provider
+          ALICLOUD_ACCESS_KEY: aaa
+          ALICLOUD_SECRET_KEY: bbb
+EOF
+  sed -i "s|NodeID:.*|NodeID: ${node_id}|" ./config.yml
+  sed -i "s|ApiHost:.*|ApiHost: \"${api_host}\"|" ./config.yml
+  sed -i "s|DeviceLimit:.*|DeviceLimit: ${DeviceLimit}|" ./config.yml
 }
 
-update() {
-    if [[ $# == 0 ]]; then
-        echo && echo -n -e "输入指定版本(默认最新版): " && read version
-    else
-        version=$2
-    fi
-#    confirm "本功能会强制重装当前最新版，数据不会丢失，是否继续?" "n"
-#    if [[ $? != 0 ]]; then
-#        echo -e "${red}已取消${plain}"
-#        if [[ $1 != 0 ]]; then
-#            before_show_menu
-#        fi
-#        return 0
-#    fi
-    bash <(curl -Ls https://raw.githubusercontent.com/vaxilu/soga/master/install.sh) $version
-    if [[ $? == 0 ]]; then
-        echo -e "${green}更新完成，已自动重启 soga，请使用 soga log 查看运行日志${plain}"
-        exit
-    fi
-
-    if [[ $# == 0 ]]; then
-        before_show_menu
-    fi
+# Install docker and docker compose
+install_docker() {
+  echo -e "bắt đầu cài đặt DOCKER "
+ sudo apt-get update
+sudo apt-get install \
+    apt-transport-https \
+    ca-certificates \
+    curl \
+    gnupg-agent \
+    software-properties-common -y
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+sudo add-apt-repository \
+   "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+   $(lsb_release -cs) \
+   stable"
+sudo apt-get install docker-ce docker-ce-cli containerd.io -y
+systemctl start docker
+systemctl enable docker
+  echo -e "bắt đầu cài đặt Docker Compose "
+curl -fsSL https://get.docker.com | bash -s docker
+curl -L "https://github.com/docker/compose/releases/download/1.26.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+chmod +x /usr/local/bin/docker-compose
+  echo "khởi động Docker "
+  service docker start
+  echo "khởi động Docker-Compose "
+  docker-compose up -d
+  echo
+  echo -e "Đã hoàn tất cài đặt phụ trợ ！"
+  echo -e "0 0 */3 * *  cd /root/${cur_dir} && /usr/local/bin/docker-compose pull && /usr/local/bin/docker-compose up -d" >>/etc/crontab
+  echo -e "Cài đặt cập nhật thời gian kết thúc đã hoàn tất! hệ thống sẽ update sau [${green}24H${plain}] Từ lúc bạn cài đặt"
 }
 
-config() {
-    soga-tool $*
+install_check() {
+  if check_sys packageManager yum || check_sys packageManager apt; then
+    if centosversion 5; then
+      return 1
+    fi
+    return 0
+  else
+    return 1
+  fi
 }
 
-uninstall() {
-    confirm "确定要卸载 soga 吗?" "n"
-    if [[ $? != 0 ]]; then
-        if [[ $# == 0 ]]; then
-            show_menu
-        fi
-        return 0
+install_dependencies() {
+  if check_sys packageManager yum; then
+    echo -e "[${green}Info${plain}] Kiểm tra kho EPEL ..."
+    if [ ! -f /etc/yum.repos.d/epel.repo ]; then
+      yum install -y epel-release >/dev/null 2>&1
     fi
-    systemctl stop soga
-    systemctl disable soga
-    rm /etc/systemd/system/soga.service -f
-    systemctl daemon-reload
-    systemctl reset-failed
-    rm /etc/soga/ -rf
-    rm /usr/local/soga/ -rf
+    [ ! -f /etc/yum.repos.d/epel.repo ] && echo -e "[${red}Error${plain}] Không cài đặt được kho EPEL, vui lòng kiểm tra." && exit 1
+    [ ! "$(command -v yum-config-manager)" ] && yum install -y yum-utils >/dev/null 2>&1
+    [ x"$(yum-config-manager epel | grep -w enabled | awk '{print $3}')" != x"True" ] && yum-config-manager --enable epel >/dev/null 2>&1
+    echo -e "[${green}Info${plain}] Kiểm tra xem kho lưu trữ EPEL đã hoàn tất chưa ..."
 
-    echo ""
-    echo -e "卸载成功，如果你想删除此脚本，则退出脚本后运行 ${green}rm /usr/bin/soga -f${plain} 进行删除"
-    echo ""
+    yum_depends=(
+      curl
+    )
+    for depend in ${yum_depends[@]}; do
+      error_detect_depends "yum -y install ${depend}"
+    done
+  elif check_sys packageManager apt; then
+    apt_depends=(
+      curl
+    )
+    apt-get -y update
+    for depend in ${apt_depends[@]}; do
+      error_detect_depends "apt-get -y install ${depend}"
+    done
+  fi
+  echo -e "[${green}Info${plain}] Đặt múi giờ thành Hồ Chí Minh GTM+7"
+  ln -sf /usr/share/zoneinfo/Asia/Ho_Chi_Minh  /etc/localtime
+  date -s "$(curl -sI g.cn | grep Date | cut -d' ' -f3-6)Z"
 
-    if [[ $# == 0 ]]; then
-        before_show_menu
-    fi
 }
 
-start() {
-    check_status
-    if [[ $? == 0 ]]; then
-        echo ""
-        echo -e "${green}soga已运行，无需再次启动，如需重启请选择重启${plain}"
-    else
-        systemctl start soga
-        sleep 2
-        check_status
-        if [[ $? == 0 ]]; then
-            echo -e "${green}soga 启动成功，请使用 soga log 查看运行日志${plain}"
-        else
-            echo -e "${red}soga可能启动失败，请稍后使用 soga log 查看日志信息${plain}"
-        fi
-    fi
-
-    if [[ $# == 0 ]]; then
-        before_show_menu
-    fi
+#update_image
+Update_xrayr() {
+  cd ${cur_dir}
+  echo "Tải hình ảnh DOCKER"
+  docker-compose pull
+  echo "Bắt đầu chạy dịch vụ DOCKER"
+  docker-compose up -d
 }
 
-stop() {
-    systemctl stop soga
-    sleep 2
-    check_status
-    if [[ $? == 1 ]]; then
-        echo -e "${green}soga 停止成功${plain}"
-    else
-        echo -e "${red}soga停止失败，可能是因为停止时间超过了两秒，请稍后查看日志信息${plain}"
-    fi
+#show last 100 line log
 
-    if [[ $# == 0 ]]; then
-        before_show_menu
-    fi
+logs_xrayr() {
+  echo "100 dòng nhật ký chạy sẽ được hiển thị"
+  docker-compose logs --tail 100
 }
 
-restart() {
-    systemctl restart soga
-    sleep 2
-    check_status
-    if [[ $? == 0 ]]; then
-        echo -e "${green}soga 重启成功，请使用 soga log 查看运行日志${plain}"
-    else
-        echo -e "${red}soga可能启动失败，请稍后使用 soga log 查看日志信息${plain}"
-    fi
-    if [[ $# == 0 ]]; then
-        before_show_menu
-    fi
+# Update config
+UpdateConfig_xrayr() {
+  cd ${cur_dir}
+  echo "đóng dịch vụ hiện tại"
+  docker-compose down
+  pre_install_docker_compose
+  config_docker
+  echo "Bắt đầu chạy dịch vụ DOKCER"
+  docker-compose up -d
 }
 
-status() {
-    systemctl status soga --no-pager -l
-    if [[ $# == 0 ]]; then
-        before_show_menu
-    fi
+restart_xrayr() {
+  cd ${cur_dir}
+  docker-compose down
+  docker-compose up -d
+  echo "Khởi động lại thành công!"
+}
+delete_xrayr() {
+  cd ${cur_dir}
+  docker-compose down
+  cd ~
+  rm -Rf ${cur_dir}
+  echo "đã xóa thành công!"
+}
+# Install xrayr
+Install_xrayr() {
+  pre_install_docker_compose
+  config_docker
+  install_docker
 }
 
-enable() {
-    systemctl enable soga
-    if [[ $? == 0 ]]; then
-        echo -e "${green}soga 设置开机自启成功${plain}"
-    else
-        echo -e "${red}soga 设置开机自启失败${plain}"
-    fi
-
-    if [[ $# == 0 ]]; then
-        before_show_menu
-    fi
-}
-
-disable() {
-    systemctl disable soga
-    if [[ $? == 0 ]]; then
-        echo -e "${green}soga 取消开机自启成功${plain}"
-    else
-        echo -e "${red}soga 取消开机自启失败${plain}"
-    fi
-
-    if [[ $# == 0 ]]; then
-        before_show_menu
-    fi
-}
-
-show_log() {
-    journalctl -u soga.service -e --no-pager -f
-    if [[ $# == 0 ]]; then
-        before_show_menu
-    fi
-}
-
-update_shell() {
-    wget -O /usr/bin/soga -N --no-check-certificate https://github.com/vaxilu/soga/raw/master/soga.sh
-    if [[ $? != 0 ]]; then
-        echo ""
-        echo -e "${red}下载脚本失败，请检查本机能否连接 Github${plain}"
-        before_show_menu
-    else
-        chmod +x /usr/bin/soga
-        echo -e "${green}升级脚本成功，请重新运行脚本${plain}" && exit 0
-    fi
-}
-
-# 0: running, 1: not running, 2: not installed
-check_status() {
-    if [[ ! -f /etc/systemd/system/soga.service ]]; then
-        return 2
-    fi
-    temp=$(systemctl status soga | grep Active | awk '{print $3}' | cut -d "(" -f2 | cut -d ")" -f1)
-    if [[ x"${temp}" == x"running" ]]; then
-        return 0
-    else
-        return 1
-    fi
-}
-
-check_enabled() {
-    temp=$(systemctl is-enabled soga)
-    if [[ x"${temp}" == x"enabled" ]]; then
-        return 0
-    else
-        return 1;
-    fi
-}
-
-check_uninstall() {
-    check_status
-    if [[ $? != 2 ]]; then
-        echo ""
-        echo -e "${red}soga已安装，请不要重复安装${plain}"
-        if [[ $# == 0 ]]; then
-            before_show_menu
-        fi
-        return 1
-    else
-        return 0
-    fi
-}
-
-check_install() {
-    check_status
-    if [[ $? == 2 ]]; then
-        echo ""
-        echo -e "${red}请先安装soga${plain}"
-        if [[ $# == 0 ]]; then
-            before_show_menu
-        fi
-        return 1
-    else
-        return 0
-    fi
-}
-
-show_status() {
-    check_status
-    case $? in
-        0)
-            echo -e "soga状态: ${green}已运行${plain}"
-            show_enable_status
-            ;;
-        1)
-            echo -e "soga状态: ${yellow}未运行${plain}"
-            show_enable_status
-            ;;
-        2)
-            echo -e "soga状态: ${red}未安装${plain}"
-    esac
-}
-
-show_enable_status() {
-    check_enabled
-    if [[ $? == 0 ]]; then
-        echo -e "是否开机自启: ${green}是${plain}"
-    else
-        echo -e "是否开机自启: ${red}否${plain}"
-    fi
-}
-
-show_soga_version() {
-    echo -n "soga 版本："
-    /usr/local/soga/soga -v
-    echo ""
-    if [[ $# == 0 ]]; then
-        before_show_menu
-    fi
-}
-
-show_usage() {
-    echo "soga 管理脚本使用方法: "
-    echo "------------------------------------------"
-    echo "soga                    - 显示管理菜单 (功能更多)"
-    echo "soga start              - 启动 soga"
-    echo "soga stop               - 停止 soga"
-    echo "soga restart            - 重启 soga"
-    echo "soga status             - 查看 soga 状态"
-    echo "soga enable             - 设置 soga 开机自启"
-    echo "soga disable            - 取消 soga 开机自启"
-    echo "soga log                - 查看 soga 日志"
-    echo "soga update             - 更新 soga"
-    echo "soga update x.x.x       - 更新 soga 指定版本"
-    echo "soga config             - 显示配置文件内容"
-    echo "soga config xx=xx yy=yy - 自动设置配置文件"
-    echo "soga install            - 安装 soga"
-    echo "soga uninstall          - 卸载 soga"
-    echo "soga version            - 查看 soga 版本"
-    echo "------------------------------------------"
-}
-
-show_menu() {
-    echo -e "
-  ${green}soga 后端管理脚本，${plain}${red}不适用于docker${plain}
-
-  ${green}0.${plain} 退出脚本
-————————————————
-  ${green}1.${plain} 安装 soga
-  ${green}2.${plain} 更新 soga
-  ${green}3.${plain} 卸载 soga
-————————————————
-  ${green}4.${plain} 启动 soga
-  ${green}5.${plain} 停止 soga
-  ${green}6.${plain} 重启 soga
-  ${green}7.${plain} 查看 soga 状态
-  ${green}8.${plain} 查看 soga 日志
-————————————————
-  ${green}9.${plain} 设置 soga 开机自启
- ${green}10.${plain} 取消 soga 开机自启
-————————————————
- ${green}11.${plain} 查看 soga 版本
- "
-    show_status
-    echo && read -p "请输入选择 [0-11]: " num
-
-    case "${num}" in
-        0) exit 0
-        ;;
-        1) check_uninstall && install
-        ;;
-        2) check_install && update
-        ;;
-        3) check_install && uninstall
-        ;;
-        4) check_install && start
-        ;;
-        5) check_install && stop
-        ;;
-        6) check_install && restart
-        ;;
-        7) check_install && status
-        ;;
-        8) check_install && show_log
-        ;;
-        9) check_install && enable
-        ;;
-        10) check_install && disable
-        ;;
-        11) check_install && show_soga_version
-        ;;
-        *) echo -e "${red}请输入正确的数字 [0-11]${plain}"
-        ;;
-    esac
-}
-
-
-if [[ $# > 0 ]]; then
-    case $1 in
-        "start") check_install 0 && start 0
-        ;;
-        "stop") check_install 0 && stop 0
-        ;;
-        "restart") check_install 0 && restart 0
-        ;;
-        "status") check_install 0 && status 0
-        ;;
-        "enable") check_install 0 && enable 0
-        ;;
-        "disable") check_install 0 && disable 0
-        ;;
-        "log") check_install 0 && show_log 0
-        ;;
-        "update") check_install 0 && update 0 $2
-        ;;
-        "config") config $*
-        ;;
-        "install") check_uninstall 0 && install 0
-        ;;
-        "uninstall") check_install 0 && uninstall 0
-        ;;
-        "version") check_install 0 && show_soga_version 0
-        ;;
-        *) show_usage
-    esac
-else
-    show_menu
-fi
+# Initialization step
+clear
+while true; do
+  echo "-----XrayR Aiko-----"
+  echo "Địa chỉ dự án và tài liệu trợ giúp:  https://github.com/AikoCute/XrayR"
+  echo "AikoCute Hột Me"
+  echo "Vui lòng nhập một số để Thực Hiện Câu Lệnh:"
+  for ((i = 1; i <= ${#operation[@]}; i++)); do
+    hint="${operation[$i - 1]}"
+    echo -e "${green}${i}${plain}) ${hint}"
+  done
+  read -p "Vui lòng chọn một số và nhấn Enter (Enter theo mặc định ${operation[0]}):" selected
+  [ -z "${selected}" ] && selected="1"
+  case "${selected}" in
+  1 | 2 | 3 | 4 | 5 | 6 | 7)
+    echo
+    echo "Bắt Đầu : ${operation[${selected} - 1]}"
+    echo
+    ${operation[${selected} - 1]}_xrayr
+    break
+    ;;
+  *)
+    echo -e "[${red}Error${plain}] Vui lòng nhập số chính xác [1-6]"
+    ;;
+  esac
+done

@@ -125,20 +125,19 @@ pre_install_docker_compose() {
   echo "-------------------------------"
   echo -e "Node_ID: ${node_id}"
   echo "-------------------------------"
+  
+  #Domain 443
+read -p "Domain 443 :" CertDomain
+  [ -z "${CertDomain}" ] && CertDomain="443.vpn4g.net"
+  echo "-------------------------------"
+  echo "Domain 443 là: ${CertDomain}"
+  echo "-------------------------------"
 
   #giới hạn thiết bị
 read -p "Giới hạn thiết bị :" DeviceLimit
   [ -z "${DeviceLimit}" ] && DeviceLimit="0"
   echo "-------------------------------"
   echo "Thiết bị tối đa là: ${DeviceLimit}"
-  echo "-------------------------------"
-}
- 
-   #Domain 443
-read -p "Domain 443 :" CertDomain
-  [ -z "${CertDomain}" ] && CertDomain="443.vpn4g.net"
-  echo "-------------------------------"
-  echo "Domain 443 là: ${CertDomain}"
   echo "-------------------------------"
 }
 

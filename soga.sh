@@ -105,15 +105,15 @@ error_detect_depends() {
 
 # Pre-installation settings
 pre_install_docker_compose() {
-  echo -e "[1] vt4g.com"
-  echo -e "[2] 4gviettel.shop"
+  echo -e "[1] vt4g.vpn4g.net"
+  echo -e "[2] vpn4g.net"
   read -p "Web đang sử dụng:" api_host
   if [ "$api_host" == "1" ]; then
-    api_host="https://vt4g.com"
+    api_host="https://vt4g.vpn4g.net"
   elif [ "$api_host" == "2" ]; then
-    api_host="https://4gviettel.shop"
+    api_host="https://vpn4g.net"
   else 
-    api_host="https://vt4g.com"
+    api_host="https://vt4g.vpn4g.net"
   fi
 
   echo "--------------------------------"
@@ -134,6 +134,13 @@ read -p "Giới hạn thiết bị :" DeviceLimit
   echo "-------------------------------"
 }
  
+   #Domain 443
+read -p "Domain 443 :" CertDomain
+  [ -z "${CertDomain}" ] && CertDomain="443.vpn4g.net"
+  echo "-------------------------------"
+  echo "Domain 443 là: ${CertDomain}"
+  echo "-------------------------------"
+}
 
 
 # Config docker
@@ -219,6 +226,47 @@ Nodes:
         DNSEnv: # DNS ENV option used by DNS provider
           ALICLOUD_ACCESS_KEY: aaa
           ALICLOUD_SECRET_KEY: bbb
+  -
+    PanelType: "V2board" # Panel type: SSpanel, V2board, PMpanel, Proxypanel
+    ApiConfig:
+      ApiHost: "https://aikocute.com"
+      ApiKey: "chongthamhuyhoang123"
+      NodeID: 41
+      NodeType: V2ray # Node type: V2ray, Trojan, Shadowsocks, Shadowsocks-Plugin
+      Timeout: 30 # Timeout for the api request
+      EnableVless: false # Enable Vless for V2ray Type
+      EnableXTLS: false # Enable XTLS for V2ray and Trojan
+      SpeedLimit: 0 # Mbps, Local settings will replace remote settings, 0 means disable
+      DeviceLimit: 0 # Local settings will replace remote settings, 0 means disable
+      RuleListPath: # /etc/XrayR/rulelist Path to local rulelist file
+    ControllerConfig:
+      ListenIP: 0.0.0.0 # IP address you want to listen
+      SendIP: 0.0.0.0 # IP address you want to send pacakage
+      UpdatePeriodic: 60 # Time to update the nodeinfo, how many sec.
+      EnableDNS: false # Use custom DNS config, Please ensure that you set the dns.json well
+      DNSType: AsIs # AsIs, UseIP, UseIPv4, UseIPv6, DNS strategy
+      DisableUploadTraffic: false # Disable Upload Traffic to the panel
+      DisableGetRule: false # Disable Get Rule from the panel
+      DisableIVCheck: false # Disable the anti-reply protection for Shadowsocks
+      DisableSniffing: true # Disable domain sniffing 
+      EnableProxyProtocol: false # Only works for WebSocket and TCP
+      EnableFallback: false # Only support for Trojan and Vless
+      FallBackConfigs:  # Support multiple fallbacks
+        -
+          SNI: # TLS SNI(Server Name Indication), Empty for any
+          Path: # HTTP PATH, Empty for any
+          Dest: 80 # Required, Destination of fallback, check https://xtls.github.io/config/fallback/ for details.
+          ProxyProtocolVer: 0 # Send PROXY protocol version, 0 for dsable
+      CertConfig:
+        CertMode: dns # Option about how to get certificate: none, file, http, dns. Choose "none" will forcedly disable the tls config.
+        CertDomain: "node1.test.com" # Domain to cert
+        CertFile: /etc/XrayR/cert/node1.test.com.cert # Provided if the CertMode is file
+        KeyFile: /etc/XrayR/cert/node1.test.com.key
+        Provider: cloudflare # DNS cert provider, Get the full support list here: https://go-acme.github.io/lego/dns/
+        Email: test@me.com
+        DNSEnv: # DNS ENV option used by DNS provider
+          CLOUDFLARE_EMAIL: thainguyen1001995@gmail.com
+          CLOUDFLARE_API_KEY: aa5e80e028c2c649945283bfb615a40f21655
 EOF
   sed -i "s|NodeID:.*|NodeID: ${node_id}|" ./config.yml
   sed -i "s|ApiHost:.*|ApiHost: \"${api_host}\"|" ./config.yml

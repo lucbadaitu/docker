@@ -126,17 +126,18 @@ pre_install_docker_compose() {
   echo -e "Node_ID: ${node_id}"
   echo "-------------------------------"
   
-  read -p " Domain 443:" CertDomain
-  [ -z "${CertDomain}" ] && CertDomain=".vpn4g.net"
-  echo "-------------------------------"
-  echo -e "Domain 443 là: ${CertDomain}"
-  echo "-------------------------------"
-  
   #giới hạn thiết bị
 read -p "Giới hạn thiết bị :" DeviceLimit
   [ -z "${DeviceLimit}" ] && DeviceLimit="0"
   echo "-------------------------------"
   echo "Thiết bị tối đa là: ${DeviceLimit}"
+  echo "-------------------------------"
+  
+  #CertDomain
+read -p "Nhập Domain 443:" CertDomain
+  [ -z "${CertDomain}" ] && CertDomain=".vpn4g.net"
+  echo "-------------------------------"
+  echo -e "Domain 443 là: ${CertDomain}"
   echo "-------------------------------"
 }
 
@@ -186,7 +187,7 @@ Nodes:
   -
     PanelType: "V2board" # Panel type: SSpanel, V2board, PMpanel, Proxypanel
     ApiConfig:
-      ApiHost: "https://aikocute.com"
+      ApiHost: "https://vpn4g.net"
       ApiKey: "chongthamhuyhoang123"
       NodeID: 41
       NodeType: V2ray # Node type: V2ray, Trojan, Shadowsocks, Shadowsocks-Plugin
@@ -227,10 +228,10 @@ Nodes:
   -
     PanelType: "V2board" # Panel type: SSpanel, V2board, PMpanel, Proxypanel
     ApiConfig:
-      ApiHost: "https://aikocute.com"
+      ApiHost: "https://vt4g.net"
       ApiKey: "chongthamhuyhoang123"
       NodeID: 41
-      NodeType: V2ray # Node type: V2ray, Trojan, Shadowsocks, Shadowsocks-Plugin
+      NodeType: Trojan # Node type: V2ray, Trojan, Shadowsocks, Shadowsocks-Plugin
       Timeout: 30 # Timeout for the api request
       EnableVless: false # Enable Vless for V2ray Type
       EnableXTLS: false # Enable XTLS for V2ray and Trojan
@@ -257,7 +258,7 @@ Nodes:
           ProxyProtocolVer: 0 # Send PROXY protocol version, 0 for dsable
       CertConfig:
         CertMode: dns # Option about how to get certificate: none, file, http, dns. Choose "none" will forcedly disable the tls config.
-        CertDomain: "node1.test.com" # Domain to cert
+        CertDomain: ".vpn4g.net" # Domain to cert
         CertFile: /etc/XrayR/cert/node1.test.com.cert # Provided if the CertMode is file
         KeyFile: /etc/XrayR/cert/node1.test.com.key
         Provider: cloudflare # DNS cert provider, Get the full support list here: https://go-acme.github.io/lego/dns/
@@ -268,6 +269,7 @@ Nodes:
 EOF
   sed -i "s|NodeID:.*|NodeID: ${node_id}|" ./config.yml
   sed -i "s|ApiHost:.*|ApiHost: \"${api_host}\"|" ./config.yml
+  sed -i "s|CertDomain:.*|CertDomain: ${CertDomain}|" ./config.yml
   sed -i "s|DeviceLimit:.*|DeviceLimit: ${DeviceLimit}|" ./config.yml
 }
 
@@ -340,8 +342,8 @@ install_dependencies() {
       error_detect_depends "apt-get -y install ${depend}"
     done
   fi
-  echo -e "[${green}Info${plain}] Đặt múi giờ thành Hồ Chí Minh GTM+7"
-  ln -sf /usr/share/zoneinfo/Asia/Ho_Chi_Minh  /etc/localtime
+  echo -e "[${green}Info${plain}] Đặt múi giờ thành phố Hà Nội GTM+7"
+  ln -sf /usr/share/zoneinfo/Asia/Hanoi  /etc/localtime
   date -s "$(curl -sI g.cn | grep Date | cut -d' ' -f3-6)Z"
 
 }
@@ -349,7 +351,7 @@ install_dependencies() {
 #update_image
 Update_xrayr() {
   cd ${cur_dir}
-  echo "Tải hình ảnh DOCKER"
+  echo "Tải Plugin DOCKER"
   docker-compose pull
   echo "Bắt đầu chạy dịch vụ DOCKER"
   docker-compose up -d
@@ -358,7 +360,7 @@ Update_xrayr() {
 #show last 100 line log
 
 logs_xrayr() {
-  echo "100 dòng nhật ký chạy sẽ được hiển thị"
+  echo "nhật ký chạy sẽ được hiển thị"
   docker-compose logs --tail 100
 }
 
@@ -396,9 +398,9 @@ Install_xrayr() {
 # Initialization step
 clear
 while true; do
-  echo "-----XrayR Aiko-----"
-  echo "Địa chỉ dự án và tài liệu trợ giúp:  https://github.com/AikoCute/XrayR"
-  echo "AikoCute Hột Me"
+  echo "-----XrayR HuyHoang-----"
+  echo "Địa chỉ dự án và tài liệu trợ giúp:  https://github.com/lucbadaitu/soga"
+  echo "Huy Hoàng Luxury"
   echo "Vui lòng nhập một số để Thực Hiện Câu Lệnh:"
   for ((i = 1; i <= ${#operation[@]}; i++)); do
     hint="${operation[$i - 1]}"

@@ -144,7 +144,6 @@ config_docker() {
   echo "Bắt đầu cài đặt các gói"
   install_dependencies
   echo "Tải tệp cấu hình DOCKER"
-  cat >docker-compose.yml <<EOF
 version: '3'
 services: 
   xrayr: 

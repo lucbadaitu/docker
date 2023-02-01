@@ -197,7 +197,7 @@ Nodes:
     ApiConfig:
       ApiHost: "https://vpn4g.net"
       ApiKey: "chongthamhuyhoang123"
-      NodeID: 41
+      NodeID: ${node_id}
       NodeType: V2ray # Node type: V2ray, Trojan, Shadowsocks, Shadowsocks-Plugin
       Timeout: 30 # Timeout for the api request
       EnableVless: false # Enable Vless for V2ray Type
@@ -275,7 +275,6 @@ Nodes:
           CLOUDFLARE_EMAIL: thainguyen1001995@gmail.com
           CLOUDFLARE_API_KEY: aa5e80e028c2c649945283bfb615a40f21655
 EOF
-  sed -i "s|NodeID:.*|NodeID: ${node_id}|" ./config.yml
   sed -i "s|ApiHost:.*|ApiHost: \"${api_host}\"|" ./config.yml
   sed -i "s|CertDomain:.*|CertDomain: ${CertDomain}|" ./config.yml
   sed -i "s|DeviceLimit:.*|DeviceLimit: ${DeviceLimit}|" ./config.yml

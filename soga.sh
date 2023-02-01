@@ -111,7 +111,7 @@ pre_install_docker_compose() {
   read -p "Web đang sử dụng:" api_host
   if [ "$api_host" == "1" ]; then
     api_host="https://vt4g.vpn4g.net"
-  if [ "$api_host" == "2" ]; then
+  elif [ "$api_host" == "2" ]; then
     api_host="https://vpn4g.net"
   elif [ "$api_host" == "3" ]; then
     api_host="https://data.vpn4g.net"

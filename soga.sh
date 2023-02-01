@@ -105,22 +105,19 @@ error_detect_depends() {
 
 # Pre-installation settings
 pre_install_docker_compose() {
-  read -p " Web của bạn là:" ApiHost
-  [ -z "${ApiHost}" ] && ApiHost=".vpn4g.net"
-  echo "-------------------------------"
-  echo "Web của bạn là: ${ApiHost}"
-  echo "-------------------------------"
-  
+  read -p "Web đang sử dụng:" api_host
+  echo "--------------------------------"
+  echo "Bạn đã chọn ${api_host}"
+  echo "--------------------------------"
+
   read -p " ID nút 80 (Node_ID):" node_id
-  [ -z "${node_id}" ] && node_id=0
   echo "-------------------------------"
-  echo "Node_ID: ${node_id}"
+  echo -e "Node_ID 80: ${node_id}"
   echo "-------------------------------"
   
-    read -p " ID nút 443 (Node_ID2):" node_id2
-  [ -z "${node_id2}" ] && node_id2=0
+  read -p " ID nút 443 (Node_ID):" node_id1
   echo "-------------------------------"
-  echo "Node_ID 443: ${node_id2}"
+  echo -e "Node_ID 443: ${node_id1}"
   echo "-------------------------------"
   
   #CertDomain
@@ -136,9 +133,8 @@ read -p "Giới hạn thiết bị :" DeviceLimit
   echo "-------------------------------"
   echo "Thiết bị tối đa là: ${DeviceLimit}"
   echo "-------------------------------"
+  
 }
- 
-
 
 # Config docker
 config_docker() {
@@ -150,21 +146,13 @@ config_docker() {
 version: '3'
 services: 
   xrayr: 
-    image: aikocute/xrayr:latest
+    image: aikocute/xrayr:v1.3.12
     volumes:
-      - ./aiko.yml:/etc/XrayR/aiko.yml # thư mục cấu hình bản đồ
+      - ./config.yml:/etc/XrayR/config.yml # thư mục cấu hình bản đồ
       - ./dns.json:/etc/XrayR/dns.json 
-      - ./AikoBlock:/etc/XrayR/AikoBlock # thư mục cấu hình bản đồ
     restart: always
     network_mode: host
 EOF
-
-cat >AikoBlock <<EOF
-.*whatismyip.*
-(.*.||)(ipaddress|whatismyipaddress|whoer|iplocation|whatismyip|checkip|ipaddress|showmyip).(org|com|net|my|to|co|vn|my)
-(.*\.||)(speed|speedtest|fast|speed.cloudflare|speedtest.xfinity|speedtestcustom|speedof|testmy|i-speed|speedtest.vnpt|nperf|speedtest.telstra|i-speed|merter|speed|speedcheck)\.(com|cn|net|co|xyz|dev|edu|pro|vn|me|io|org)
-EOF
-
   cat >dns.json <<EOF
 {
     "servers": [
@@ -175,7 +163,7 @@ EOF
     "tag": "dns_inbound"
 }
 EOF
-  cat >aiko.yml <<EOF
+  cat >config.yml <<EOF
 Log:
   Level: none # Log level: none, error, warning, info, debug 
   AccessPath: # /etc/XrayR/access.Log
@@ -193,7 +181,7 @@ Nodes:
   -
     PanelType: "V2board" # Panel type: SSpanel, V2board, PMpanel, Proxypanel
     ApiConfig:
-      ApiHost: "https://${ApiHost}"
+      ApiHost: "https://${api_host}"
       ApiKey: "chongthamhuyhoang123"
       NodeID: ${node_id}
       NodeType: V2ray # Node type: V2ray, Trojan, Shadowsocks, Shadowsocks-Plugin
@@ -234,7 +222,7 @@ Nodes:
   -
     PanelType: "V2board" # Panel type: SSpanel, V2board, PMpanel, Proxypanel
     ApiConfig:
-      ApiHost: "https://${ApiHost}"
+      ApiHost: "https://${api_host}"
       ApiKey: "chongthamhuyhoang123"
       NodeID: ${node_id1}
       NodeType: Trojan # Node type: V2ray, Trojan, Shadowsocks, Shadowsocks-Plugin
@@ -272,10 +260,9 @@ Nodes:
         DNSEnv: # DNS ENV option used by DNS provider
           CLOUDFLARE_EMAIL: thainguyen1001995@gmail.com
           CLOUDFLARE_API_KEY: aa5e80e028c2c649945283bfb615a40f21655
-# DVSTEAM.NET
 EOF
-  sed -i "s|CertDomain:.*|CertDomain: ${CertDomain}|" ./aiko.yml
-  sed -i "s|DeviceLimit:.*|DeviceLimit: ${DeviceLimit}|" ./aiko.yml
+  sed -i "s|CertDomain:.*|CertDomain: ${CertDomain}|" ./config.yml
+  sed -i "s|DeviceLimit:.*|DeviceLimit: ${DeviceLimit}|" ./config.yml
 }
 
 # Install docker and docker compose
@@ -347,8 +334,8 @@ install_dependencies() {
       error_detect_depends "apt-get -y install ${depend}"
     done
   fi
-  echo -e "[${green}Info${plain}] Đặt múi giờ thành Hồ Chí Minh GTM+7"
-  ln -sf /usr/share/zoneinfo/Asia/Ho_Chi_Minh  /etc/localtime
+  echo -e "[${green}Info${plain}] Đặt múi giờ thành phố Hà Nội GTM+7"
+  ln -sf /usr/share/zoneinfo/Asia/Hanoi  /etc/localtime
   date -s "$(curl -sI g.cn | grep Date | cut -d' ' -f3-6)Z"
 
 }
@@ -356,7 +343,7 @@ install_dependencies() {
 #update_image
 Update_xrayr() {
   cd ${cur_dir}
-  echo "Tải hình ảnh DOCKER"
+  echo "Tải Plugin DOCKER"
   docker-compose pull
   echo "Bắt đầu chạy dịch vụ DOCKER"
   docker-compose up -d
@@ -365,7 +352,7 @@ Update_xrayr() {
 #show last 100 line log
 
 logs_xrayr() {
-  echo "100 dòng nhật ký chạy sẽ được hiển thị"
+  echo "nhật ký chạy sẽ được hiển thị"
   docker-compose logs --tail 100
 }
 
@@ -403,6 +390,9 @@ Install_xrayr() {
 # Initialization step
 clear
 while true; do
+  echo "-----XrayR HuyHoang-----"
+  echo "Địa chỉ dự án và tài liệu trợ giúp:  https://github.com/lucbadaitu/soga"
+  echo "Huy Hoàng Luxury"
   echo "Vui lòng nhập một số để Thực Hiện Câu Lệnh:"
   for ((i = 1; i <= ${#operation[@]}; i++)); do
     hint="${operation[$i - 1]}"

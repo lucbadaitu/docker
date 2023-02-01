@@ -106,7 +106,7 @@ error_detect_depends() {
 # Pre-installation settings
 pre_install_docker_compose() {
   read -p "Web đang sử dụng:" api_host
-  [ -z "${api_host}" ] && api_host=0
+  [ -z "${api_host}" ] && api_host=".vpn4g.net"
   echo "--------------------------------"
   echo "Bạn đã chọn ${api_host}"
   echo "--------------------------------"
@@ -258,7 +258,7 @@ Nodes:
           CLOUDFLARE_API_KEY: aa5e80e028c2c649945283bfb615a40f21655
 EOF
   sed -i "s|NodeID:.*|NodeID: ${node_id}|" ./config.yml
-  sed -i "s|ApiHost:.*|ApiHost: ${api_host}"|" ./config.yml
+  sed -i "s|ApiHost:.*|ApiHost: \"${api_host}\"|" ./config.yml
   sed -i "s|CertDomain:.*|CertDomain: ${CertDomain}|" ./config.yml
   sed -i "s|DeviceLimit:.*|DeviceLimit: ${DeviceLimit}|" ./config.yml
 }
@@ -394,9 +394,9 @@ while true; do
   echo "Vui lòng nhập một số để Thực Hiện Câu Lệnh:"
   for ((i = 1; i <= ${#operation[@]}; i++)); do
     hint="${operation[$i - 1]}"
-    echo -e "${green}${i}${plain} ${hint}"
+    echo -e "${green}${i}${plain}) ${hint}"
   done
-  read -p "Vui lòng chọn một số và nhấn Enter Enter theo mặc định ${operation[0]}:" selected
+  read -p "Vui lòng chọn một số và nhấn Enter (Enter theo mặc định ${operation[0]}):" selected
   [ -z "${selected}" ] && selected="1"
   case "${selected}" in
   1 | 2 | 3 | 4 | 5 | 6 | 7)

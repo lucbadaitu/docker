@@ -144,7 +144,6 @@ read -p "Nhập Domain 443:" CertDomain
   echo "-------------------------------"
 }
 
-
 # Config docker
 config_docker() {
   cd ${cur_dir} || exit

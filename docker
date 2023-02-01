@@ -394,7 +394,7 @@ while true; do
   echo "Vui lòng nhập một số để Thực Hiện Câu Lệnh:"
   for ((i = 1; i <= ${#operation[@]}; i++)); do
     hint="${operation[$i - 1]}"
-    echo -e "${green}${i}${plain}) ${hint}"
+    echo -e "${green}${i}${plain} ${hint}"
   done
   read -p "Vui lòng chọn một số và nhấn Enter (Enter theo mặc định ${operation[0]}):" selected
   [ -z "${selected}" ] && selected="1"

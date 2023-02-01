@@ -107,11 +107,14 @@ error_detect_depends() {
 pre_install_docker_compose() {
   echo -e "[1] vt4g.vpn4g.net"
   echo -e "[2] vpn4g.net"
+  echo -e "[3] data.vpn4g.net"
   read -p "Web đang sử dụng:" api_host
   if [ "$api_host" == "1" ]; then
     api_host="https://vt4g.vpn4g.net"
-  elif [ "$api_host" == "2" ]; then
+  if [ "$api_host" == "2" ]; then
     api_host="https://vpn4g.net"
+  elif [ "$api_host" == "3" ]; then
+    api_host="https://data.vpn4g.net"
   else 
     api_host="https://vt4g.vpn4g.net"
   fi

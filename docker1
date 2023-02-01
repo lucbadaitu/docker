@@ -125,12 +125,12 @@ pre_install_docker_compose() {
 
   read -p " ID nút 80 (Node_ID):" node_id
   echo "-------------------------------"
-  echo -e "Node_ID: ${node_id}"
+  echo -e "Node_ID 80: ${node_id}"
   echo "-------------------------------"
   
   read -p " ID nút 443 (Node_ID):" node_id1
   echo "-------------------------------"
-  echo -e "Node_ID: ${node_id1}"
+  echo -e "Node_ID 443: ${node_id1}"
   echo "-------------------------------"
   
   #giới hạn thiết bị

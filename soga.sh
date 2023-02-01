@@ -105,28 +105,19 @@ error_detect_depends() {
 
 # Pre-installation settings
 pre_install_docker_compose() {
-  echo -e "[1] vt4g.vpn4g.net"
-  echo -e "[2] vpn4g.net"
-  echo -e "[3] data.vpn4g.net"
   read -p "Web đang sử dụng:" api_host
-  if [ "$api_host" == "1" ]; then
-    api_host="https://vt4g.vpn4g.net"
-  elif [ "$api_host" == "2" ]; then
-    api_host="https://vpn4g.net"
-  elif [ "$api_host" == "3" ]; then
-    api_host="https://data.vpn4g.net"
-  else 
-    api_host="https://vt4g.vpn4g.net"
-  fi
-
   echo "--------------------------------"
-  echo "Bạn đã chọn ${api_host}"
+  echo "Web của bạn là: ${api_host}"
   echo "--------------------------------"
 
-  read -p " ID nút (Node_ID):" node_id
-  [ -z "${node_id}" ] && node_id=0
+  read -p " ID nút 80 (Node_ID):" node_id
   echo "-------------------------------"
-  echo -e "Node_ID: ${node_id}"
+  echo -e "Node_ID 80: ${node_id}"
+  echo "-------------------------------"
+  
+  read -p " ID nút 443 (Node_ID):" node_id1
+  echo "-------------------------------"
+  echo -e "Node_ID 443: ${node_id1}"
   echo "-------------------------------"
   
   #giới hạn thiết bị
@@ -189,9 +180,9 @@ Nodes:
   -
     PanelType: "V2board" # Panel type: SSpanel, V2board, PMpanel, Proxypanel
     ApiConfig:
-      ApiHost: "https://vpn4g.net"
+      ApiHost: "${api_host}"
       ApiKey: "chongthamhuyhoang123"
-      NodeID: 41
+      NodeID: ${node_id}
       NodeType: V2ray # Node type: V2ray, Trojan, Shadowsocks, Shadowsocks-Plugin
       Timeout: 30 # Timeout for the api request
       EnableVless: false # Enable Vless for V2ray Type
@@ -230,9 +221,9 @@ Nodes:
   -
     PanelType: "V2board" # Panel type: SSpanel, V2board, PMpanel, Proxypanel
     ApiConfig:
-      ApiHost: "https://vt4g.net"
+      ApiHost: "${api_host}"
       ApiKey: "chongthamhuyhoang123"
-      NodeID: 41
+      NodeID: ${node_id1}
       NodeType: Trojan # Node type: V2ray, Trojan, Shadowsocks, Shadowsocks-Plugin
       Timeout: 30 # Timeout for the api request
       EnableVless: false # Enable Vless for V2ray Type
@@ -269,8 +260,6 @@ Nodes:
           CLOUDFLARE_EMAIL: thainguyen1001995@gmail.com
           CLOUDFLARE_API_KEY: aa5e80e028c2c649945283bfb615a40f21655
 EOF
-  sed -i "s|NodeID:.*|NodeID: ${node_id}|" ./config.yml
-  sed -i "s|ApiHost:.*|ApiHost: \"${api_host}\"|" ./config.yml
   sed -i "s|CertDomain:.*|CertDomain: ${CertDomain}|" ./config.yml
   sed -i "s|DeviceLimit:.*|DeviceLimit: ${DeviceLimit}|" ./config.yml
 }

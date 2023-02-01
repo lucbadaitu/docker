@@ -193,7 +193,7 @@ Nodes:
   -
     PanelType: "V2board" # Panel type: SSpanel, V2board, PMpanel, Proxypanel
     ApiConfig:
-      ApiHost: "https://vpn4g.net"
+      ApiHost: "https://${ApiHost}"
       ApiKey: "chongthamhuyhoang123"
       NodeID: ${node_id}
       NodeType: V2ray # Node type: V2ray, Trojan, Shadowsocks, Shadowsocks-Plugin
@@ -234,7 +234,7 @@ Nodes:
   -
     PanelType: "V2board" # Panel type: SSpanel, V2board, PMpanel, Proxypanel
     ApiConfig:
-      ApiHost: "https://vt4g.net"
+      ApiHost: "https://${ApiHost}"
       ApiKey: "chongthamhuyhoang123"
       NodeID: ${node_id1}
       NodeType: Trojan # Node type: V2ray, Trojan, Shadowsocks, Shadowsocks-Plugin

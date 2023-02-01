@@ -154,8 +154,6 @@ services:
       - ./dns.json:/etc/XrayR/dns.json 
     restart: always
     network_mode: host
-EOF
-  cat >dns.json <<EOF
 {
     "servers": [
         "1.1.1.1",

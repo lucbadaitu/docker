@@ -109,7 +109,8 @@ pre_install_docker_compose() {
   echo "--------------------------------"
   echo "Bạn đã chọn ${api_host}"
   echo "--------------------------------"
-
+  
+  #Node_ID
   read -p " ID nút 80 (Node_ID):" node_id
   echo "-------------------------------"
   echo -e "Node_ID 80: ${node_id}"
@@ -120,18 +121,11 @@ pre_install_docker_compose() {
   echo -e "Node_ID 443: ${node_id1}"
   echo "-------------------------------"
   
-  #CertDomain
-read -p "Nhập Domain 443:" CertDomain
-  [ -z "${CertDomain}" ] && CertDomain=".vpn4g.net"
-  echo "-------------------------------"
-  echo -e "Domain 443 là: ${CertDomain}"
-  echo "-------------------------------"
-  
   #Giao thức kết nối
   echo -e "[1] V2ray"
   echo -e "[2] Trojan"
   echo -e "[3] Shadowsocks"
-  read -p "Chọn giao thức kết nối:" NodeType
+  read -p "Chọn giao thức kết nối 443:" NodeType
   if [ "$NodeType" == "1" ]; then
     NodeType="V2ray"
   elif [ "$NodeType" == "2" ]; then
@@ -141,13 +135,19 @@ read -p "Nhập Domain 443:" CertDomain
   else 
     NodeType="V2ray"
   fi
-
   echo "--------------------------------"
   echo "Bạn đã chọn: ${NodeType}"
   echo "--------------------------------"
   
+  #CertDomain
+read -p "Nhập Domain 443:" CertDomain
+  [ -z "${CertDomain}" ] && CertDomain=".vpn4g.net"
+  echo "-------------------------------"
+  echo -e "Domain 443 là: ${CertDomain}"
+  echo "-------------------------------"
+  
   #Cloudflare
-  read -p "Nhập Gmail Cloudflare 443:" mail
+  read -p "Nhập Cloudflare_mail 443:" mail
   [ -z "${mail}" ] && mail="0"
   echo "-------------------------------"
   echo -e "CLOUDFLARE_EMAIL là: ${mail}"

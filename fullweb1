@@ -127,6 +127,19 @@ read -p "Nhập Domain 443:" CertDomain
   echo -e "Domain 443 là: ${CertDomain}"
   echo "-------------------------------"
   
+  #Cloudflare
+  read -p "Nhập Gmail Cloudflare 443:" mail
+  [ -z "${mail}" ] && mail="0"
+  echo "-------------------------------"
+  echo -e "CLOUDFLARE_EMAIL là: ${mail}"
+  echo "-------------------------------"
+  
+  read -p "Nhập Cloudflare_key 443:" key
+  [ -z "${key}" ] && key="0"
+  echo "-------------------------------"
+  echo -e "CLOUDFLARE_KEY là: ${key}"
+  echo "-------------------------------"
+  
   #giới hạn thiết bị
 read -p "Giới hạn thiết bị :" DeviceLimit
   [ -z "${DeviceLimit}" ] && DeviceLimit="0"
@@ -225,7 +238,7 @@ Nodes:
       ApiHost: "https://${api_host}"
       ApiKey: "chongthamhuyhoang123"
       NodeID: ${node_id1}
-      NodeType: Trojan # Node type: V2ray, Trojan, Shadowsocks, Shadowsocks-Plugin
+      NodeType: V2ray # Node type: V2ray, Trojan, Shadowsocks, Shadowsocks-Plugin
       Timeout: 30 # Timeout for the api request
       EnableVless: false # Enable Vless for V2ray Type
       EnableXTLS: false # Enable XTLS for V2ray and Trojan
@@ -258,8 +271,8 @@ Nodes:
         Provider: cloudflare # DNS cert provider, Get the full support list here: https://go-acme.github.io/lego/dns/
         Email: test@me.com
         DNSEnv: # DNS ENV option used by DNS provider
-          CLOUDFLARE_EMAIL: thainguyen1001995@gmail.com
-          CLOUDFLARE_API_KEY: aa5e80e028c2c649945283bfb615a40f21655
+          CLOUDFLARE_EMAIL: ${mail}
+          CLOUDFLARE_API_KEY: ${key}
 EOF
   sed -i "s|CertDomain:.*|CertDomain: ${CertDomain}|" ./config.yml
   sed -i "s|DeviceLimit:.*|DeviceLimit: ${DeviceLimit}|" ./config.yml

@@ -110,6 +110,13 @@ pre_install_docker_compose() {
   echo "Bạn đã chọn ${api_host}"
   echo "--------------------------------"
   
+   #giới hạn thiết bị
+  read -p "Giới hạn thiết bị :" DeviceLimit
+  [ -z "${DeviceLimit}" ] && DeviceLimit="0"
+  echo "-------------------------------"
+  echo "Thiết bị tối đa là: ${DeviceLimit}"
+  echo "-------------------------------"
+  
   #Node_ID
   read -p " ID nút 80 (Node_ID):" node_id
   echo "-------------------------------"
@@ -157,13 +164,6 @@ read -p "Nhập Domain 443:" CertDomain
   [ -z "${key}" ] && key="0"
   echo "-------------------------------"
   echo -e "CLOUDFLARE_KEY là: ${key}"
-  echo "-------------------------------"
-  
-  #giới hạn thiết bị
-read -p "Giới hạn thiết bị :" DeviceLimit
-  [ -z "${DeviceLimit}" ] && DeviceLimit="0"
-  echo "-------------------------------"
-  echo "Thiết bị tối đa là: ${DeviceLimit}"
   echo "-------------------------------"
   
 }

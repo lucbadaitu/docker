@@ -264,7 +264,7 @@ Nodes:
       ApiHost: "https://vt4g.net"
       ApiKey: "chongthamhuyhoang123"
       NodeID: ${node_id1}
-      NodeType: Trojan # Node type: V2ray, Trojan, Shadowsocks, Shadowsocks-Plugin
+      NodeType: ${NodeType} # Node type: V2ray, Trojan, Shadowsocks, Shadowsocks-Plugin
       Timeout: 30 # Timeout for the api request
       EnableVless: false # Enable Vless for V2ray Type
       EnableXTLS: false # Enable XTLS for V2ray and Trojan

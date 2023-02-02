@@ -127,6 +127,25 @@ read -p "Nhập Domain 443:" CertDomain
   echo -e "Domain 443 là: ${CertDomain}"
   echo "-------------------------------"
   
+  #Giao thức kết nối
+  echo -e "[1] V2ray"
+  echo -e "[2] Trojan"
+  echo -e "[3] Shadowsocks"
+  read -p "giao thức kết nối:" NodeType
+  if [ "$NodeType" == "1" ]; then
+    NodeType="V2ray"
+  elif [ "$NodeType" == "2" ]; then
+    NodeType="Trojan"
+  elif [ "$NodeType" == "3" ]; then
+    NodeType="Shadowsocks"
+  else 
+    NodeType="V2ray"
+  fi
+
+  echo "--------------------------------"
+  echo "Bạn đã chọn ${NodeType}"
+  echo "--------------------------------"
+  
   #Cloudflare
   read -p "Nhập Gmail Cloudflare 443:" mail
   [ -z "${mail}" ] && mail="0"
@@ -238,7 +257,7 @@ Nodes:
       ApiHost: "https://${api_host}"
       ApiKey: "chongthamhuyhoang123"
       NodeID: ${node_id1}
-      NodeType: V2ray # Node type: V2ray, Trojan, Shadowsocks, Shadowsocks-Plugin
+      NodeType: ${NodeType} # Node type: V2ray, Trojan, Shadowsocks, Shadowsocks-Plugin
       Timeout: 30 # Timeout for the api request
       EnableVless: false # Enable Vless for V2ray Type
       EnableXTLS: false # Enable XTLS for V2ray and Trojan
